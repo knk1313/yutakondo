@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* relay Design System 準拠トークン
+   （モノクロ運用: 有彩色を持たず、無彩色グレー neutral のみで階層をつくる）
+
+   色で区別できない分、情報の強弱は「明度差」と「下線・枠線」で表現する。
+   そのため役割トークンは用途ごとにコントラスト比を固定してある。 */
+@theme inline {
+    /* Foreground text roles（無彩色 neutral。括弧内は白地に対するコントラスト比） */
+    --color-fg-high: #171717;        /* 見出し・強調 (17.9:1) */
+    --color-fg-middle: #404040;      /* 本文 (10.4:1) */
+    --color-fg-low: #737373;         /* 補助・ラベル (4.7:1 / AA 下限) */
+    --color-fg-placeholder: #a3a3a3; /* プレースホルダ専用 (2.3:1 / 本文には使わない) */
+
+    /* Stroke（境界） */
+    --color-stroke-high: #d4d4d4;    /* タイムライン軸・バッジ枠 */
+    --color-stroke-middle: #e5e5e5;  /* 面の区切り */
+
+    /* Surface / semantic */
+    --color-surface: #ffffff;
+    --color-surface-muted: #f5f5f5;
+    /* リンクは本文と同じ明度。色では主張せず、常時下線で識別させ、
+       hover で fg-high まで濃くして反応を返す。 */
+    --color-link: #404040;
+
+    /* Font: 遊ゴシック（Yu Gothic）に統一 */
+    --font-sans: "Yu Gothic Medium", "YuGothic", "Yu Gothic", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+    /* Activities タイムラインの「期間列」幅 (Activities.tsx と TimelineItem.tsx で共通利用) */
+    --tl-axis: 11rem;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background: var(--color-surface);
+    color: var(--color-fg-high);
+    font-family: var(--font-sans);
+}
+
+/* --- スクロール連動フェードイン ------------------------------------------
+   data-reveal を付けた要素は画面外では隠れており、入った時点で
+   is-visible が付いて出てくる（付与は RevealOnScroll 側）。
+
+   動かすのは opacity と transform だけ。この2つは合成（compositing）のみで
+   処理されレイアウト再計算が走らないため、スクロール中でもフレームを落とさない。
+   逆に height / top / margin をアニメーションさせると毎フレーム再レイアウトが
+   走り、いわゆる「カクつき」になる。
+
+   @media (scripting: enabled) で囲っているのは保険。JS が動かない環境では
+   is-visible を付ける側がいないので、そもそも隠さない。 */
+@media (scripting: enabled) {
+    [data-reveal] {
+        opacity: 0;
+        transform: translateY(1.5rem);
+        transition:
+            opacity 0.6s ease-out,
+            transform 0.6s ease-out;
+    }
+
+    [data-reveal].is-visible {
+        opacity: 1;
+        transform: none;
+    }
+
+    /* タイムラインの軸線だけは別扱い。リスト全高を占める要素なので、
+       フェードにすると上端が画面に入った瞬間に「線だけ」が最後まで
+       描かれてしまい、後から出てくる項目を追い越す。
+       上端を固定して scaleY で伸ばせば、項目が上から順に出る動きと
+       方向が揃う。transform だけなのでコストはフェードと同じ。 */
+    [data-reveal-axis] {
+        transform: scaleY(0);
+        transform-origin: top;
+        transition: transform 0.8s ease-out;
+    }
+
+    [data-reveal-axis].is-visible {
+        transform: scaleY(1);
+    }
+}
+
+/* モーション低減を選んでいる環境には動きを見せない（常に表示）。
+   上のブロックより後に書くことで、同じ詳細度でこちらを勝たせている。 */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    [data-reveal],
+    [data-reveal-axis] {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
